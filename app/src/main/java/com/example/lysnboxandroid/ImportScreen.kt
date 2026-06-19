@@ -37,8 +37,9 @@ fun ImportScreen(viewModel: ReaderViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 160.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 160.dp)
     ) {
         Text("Import", style = LysnType.titleLarge, color = MaterialTheme.colorScheme.onBackground)
         Text(
