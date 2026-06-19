@@ -30,6 +30,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getString(KEY_VOICE, null)
         set(value) = prefs.edit().putString(KEY_VOICE, value).apply()
 
+    var isGridView: Boolean
+        get() = prefs.getBoolean(KEY_GRID_VIEW, true)
+        set(value) = prefs.edit().putBoolean(KEY_GRID_VIEW, value).apply()
+
     companion object {
         private const val KEY_THEME = "reading_theme"
         private const val KEY_FONT_FAMILY = "font_family"
@@ -37,5 +41,6 @@ class AppPreferences(context: Context) {
         private const val KEY_HIDE_TEXT = "hide_text"
         private const val KEY_SPEED = "speed"
         private const val KEY_VOICE = "voice_name"
+        private const val KEY_GRID_VIEW = "grid_view"
     }
 }

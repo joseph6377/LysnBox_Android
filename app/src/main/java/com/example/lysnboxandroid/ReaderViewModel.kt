@@ -69,6 +69,8 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application),
         private set
     var readingFont by mutableStateOf(ReadingFont.byId(prefs.fontFamily))
         private set
+    var isGridView by mutableStateOf(prefs.isGridView)
+        private set
 
     private var playbackService: PlaybackService? = null
     private var isBound = false
@@ -257,6 +259,11 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application),
     fun updateReadingFont(font: ReadingFont) {
         readingFont = font
         prefs.fontFamily = font.id
+    }
+
+    fun toggleLayoutMode() {
+        isGridView = !isGridView
+        prefs.isGridView = isGridView
     }
 
     // MARK: - PlaybackListener

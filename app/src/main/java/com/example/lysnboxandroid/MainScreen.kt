@@ -16,6 +16,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -73,7 +76,29 @@ fun LibraryScreen(viewModel: ReaderViewModel) {
                     Spacer(Modifier.height(16.dp))
                     FilterPills(filter) { filter = it }
                     Spacer(Modifier.height(12.dp))
-                    SearchField(query) { query = it }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            SearchField(query) { query = it }
+                        }
+                        IconButton(
+                            onClick = { viewModel.toggleLayoutMode() },
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                        ) {
+                            Icon(
+                                imageVector = if (viewModel.isGridView) Icons.Filled.FormatListBulleted else Icons.Filled.GridView,
+                                contentDescription = if (viewModel.isGridView) "Switch to List View" else "Switch to Grid View",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(4.dp))
                 }
             }
@@ -83,13 +108,26 @@ fun LibraryScreen(viewModel: ReaderViewModel) {
                     EmptyState(filter) { viewModel.selectedTab = Tab.IMPORT }
                 }
             } else {
-                items(filtered, key = { it.id }) { doc ->
-                    BookCard(
-                        document = doc,
-                        onClick = { viewModel.openDocument(doc) },
-                        onToggleFavorite = { viewModel.toggleFavorite(doc) },
-                        onDelete = { viewModel.deleteDocument(doc) }
-                    )
+                items(
+                    items = filtered,
+                    key = { it.id },
+                    span = { GridItemSpan(if (viewModel.isGridView) 1 else maxLineSpan) }
+                ) { doc ->
+                    if (viewModel.isGridView) {
+                        BookCard(
+                            document = doc,
+                            onClick = { viewModel.openDocument(doc) },
+                            onToggleFavorite = { viewModel.toggleFavorite(doc) },
+                            onDelete = { viewModel.deleteDocument(doc) }
+                        )
+                    } else {
+                        BookRow(
+                            document = doc,
+                            onClick = { viewModel.openDocument(doc) },
+                            onToggleFavorite = { viewModel.toggleFavorite(doc) },
+                            onDelete = { viewModel.deleteDocument(doc) }
+                        )
+                    }
                 }
             }
         }
@@ -274,6 +312,84 @@ private fun EmptyState(filter: LibraryFilter, onImport: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text("Import content", color = MaterialTheme.colorScheme.onPrimary)
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BookRow(
+    document: SavedDocument,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick, onLongClick = { menuOpen = true })
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CoverImage(
+            document = document,
+            modifier = Modifier
+                .width(48.dp)
+                .aspectRatio(0.68f),
+            cornerRadius = 8
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = document.title,
+                style = LysnType.subheadlineSerifBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = document.author ?: "Unknown",
+                style = LysnType.caption,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        
+        IconButton(onClick = onToggleFavorite) {
+            Icon(
+                imageVector = if (document.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = "Favorite",
+                tint = if (document.favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        
+        Box {
+            IconButton(onClick = { menuOpen = true }) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text(if (document.favorite) "Unfavorite" else "Favorite") },
+                    onClick = { menuOpen = false; onToggleFavorite() }
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete") },
+                    leadingIcon = { Icon(Icons.Filled.Delete, null) },
+                    onClick = { menuOpen = false; onDelete() }
+                )
+            }
         }
     }
 }
