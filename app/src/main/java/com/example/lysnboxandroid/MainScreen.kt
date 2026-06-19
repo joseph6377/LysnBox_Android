@@ -11,6 +11,9 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
@@ -123,11 +126,16 @@ fun LibraryScreen(viewModel: ReaderViewModel) {
                     } else {
                         BookRow(
                             document = doc,
+                            viewModel = viewModel,
                             onClick = { viewModel.openDocument(doc) },
                             onToggleFavorite = { viewModel.toggleFavorite(doc) },
                             onDelete = { viewModel.deleteDocument(doc) }
                         )
                     }
+                }
+
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    FooterSection()
                 }
             }
         }
@@ -320,11 +328,21 @@ private fun EmptyState(filter: LibraryFilter, onImport: () -> Unit) {
 @Composable
 private fun BookRow(
     document: SavedDocument,
+    viewModel: ReaderViewModel,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+
+    val totalParas = document.paragraphCount
+    val completedParas = document.chapters.take(document.cursor.chapterIndex).sumOf { it.paragraphs.size } + document.cursor.paragraphIndex
+    val progress = if (totalParas > 0) completedParas.toFloat() / totalParas else 0f
+    val pct = (progress * 100).toInt()
+    
+    val speed = viewModel.speed
+    val remainingTimeStr = getRemainingTimeStr(document, speed)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -359,6 +377,23 @@ private fun BookRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            
+            Spacer(Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                ProgressRing(
+                    progress = progress,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "$pct% • $remainingTimeStr",
+                    style = LysnType.caption,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            }
         }
         
         IconButton(onClick = onToggleFavorite) {
@@ -391,5 +426,96 @@ private fun BookRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ProgressRing(
+    progress: Float,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = 2.dp.toPx()
+        val innerSize = size.minDimension - strokeWidth
+        val radius = innerSize / 2
+        
+        // Draw track
+        drawCircle(
+            color = color.copy(alpha = 0.15f),
+            radius = radius,
+            style = Stroke(width = strokeWidth)
+        )
+        
+        // Draw progress arc
+        drawArc(
+            color = color,
+            startAngle = -90f,
+            sweepAngle = progress * 360f,
+            useCenter = false,
+            style = Stroke(
+                width = strokeWidth,
+                cap = StrokeCap.Round
+            )
+        )
+    }
+}
+
+private fun getRemainingTimeStr(document: SavedDocument, speed: Float): String {
+    val chapters = document.chapters
+    val cursor = document.cursor
+    var remainingWords = 0
+    
+    val currentChapter = chapters.getOrNull(cursor.chapterIndex)
+    if (currentChapter != null) {
+        val currentParaIdx = cursor.paragraphIndex
+        for (i in currentParaIdx until currentChapter.paragraphs.size) {
+            remainingWords += currentChapter.paragraphs[i].split(Regex("\\s+")).filter { it.isNotBlank() }.size
+        }
+    }
+    
+    for (c in (cursor.chapterIndex + 1) until chapters.size) {
+        val ch = chapters[c]
+        for (p in ch.paragraphs) {
+            remainingWords += p.split(Regex("\\s+")).filter { it.isNotBlank() }.size
+        }
+    }
+    
+    val wordsPerMinute = 150f * speed
+    val totalMinutes = remainingWords / wordsPerMinute
+    
+    val hours = totalMinutes.toInt() / 60
+    val minutes = totalMinutes.toInt() % 60
+    
+    return when {
+        hours > 0 -> "${hours} hrs ${minutes} mins left"
+        minutes > 0 -> "${minutes} mins left"
+        else -> "Completed"
+    }
+}
+
+@Composable
+private fun FooterSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Built by Joseph Thekkekara",
+            style = LysnType.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "LysnBox • 100% on-device",
+            style = LysnType.caption,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
     }
 }
