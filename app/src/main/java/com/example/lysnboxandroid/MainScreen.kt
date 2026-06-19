@@ -499,23 +499,19 @@ private fun FooterSection() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+            .padding(vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "Built by Joseph Thekkekara",
-            style = LysnType.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            style = LysnType.captionMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f)
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = "LysnBox • 100% on-device",
-            style = LysnType.caption,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            style = LysnType.caption2,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.22f)
         )
     }
 }
